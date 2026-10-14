@@ -1,0 +1,5 @@
+flask
+plivo
+python-dotenv
+pytest
+pytest-cov
