@@ -17,7 +17,11 @@ ENV_KEYS = (
     "ASSOCIATE_NUMBER",
     "TARGET_NUMBER",
     "PUBLIC_BASE_URL",
+    "AUDIO_URL",
 )
+
+# Publicly hosted MP3 played at Level 2 option 1 (Plivo's sample file) unless AUDIO_URL is set.
+DEFAULT_AUDIO_URL = "https://s3.amazonaws.com/plivocloud/music.mp3"
 
 # Settings that must be present before an outbound call can be placed.
 REQUIRED_FOR_CALL = (
@@ -43,6 +47,7 @@ def load_config(environ=None):
     """Build a config dict from the environment. Missing values become None."""
     environ = os.environ if environ is None else environ
     config = {key: (environ.get(key) or None) for key in ENV_KEYS}
+    config["AUDIO_URL"] = config["AUDIO_URL"] or DEFAULT_AUDIO_URL
     config["BIRTHDATE_OTP"] = BIRTHDATE_OTP
     return config
 

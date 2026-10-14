@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from app.call_state import authenticated_calls
+from app.call_state import call_store
 from app.config import BIRTHDATE_OTP
 
 BASE = "https://example.test"
@@ -83,7 +83,7 @@ def test_r4_correct_otp_matches_birthdate_config(client, otp):
     root = parse(verify(client, otp))
 
     assert speak_texts(root) == ["Thank you. You have been verified."]
-    assert CALL_A in authenticated_calls
+    assert call_store.is_authenticated(CALL_A)
 
 
 def test_r4_correct_otp_redirects_to_language_menu(client, otp):
@@ -97,19 +97,19 @@ def test_r5_wrong_otp_reprompts(client, otp):
 
     assert speak_texts(root) == ["Incorrect OTP. Please try again."]
     assert_redirects_to(root, "/answer")
-    assert CALL_A not in authenticated_calls
+    assert not call_store.is_authenticated(CALL_A)
 
 
 def test_r5_repeated_wrong_otps_keep_reprompting(client, otp):
     for _ in range(5):
         root = parse(verify(client, wrong_otp(otp)))
         assert_redirects_to(root, "/answer")
-        assert CALL_A not in authenticated_calls
+        assert not call_store.is_authenticated(CALL_A)
 
     root = parse(verify(client, otp))
 
     assert_redirects_to(root, "/menu/language")
-    assert CALL_A in authenticated_calls
+    assert call_store.is_authenticated(CALL_A)
 
 
 @pytest.mark.parametrize(
@@ -128,14 +128,14 @@ def test_r5_empty_short_long_and_nonnumeric_otp_rejected(client, otp, make_digit
 
     assert speak_texts(root) == ["Incorrect OTP. Please try again."]
     assert_redirects_to(root, "/answer")
-    assert CALL_A not in authenticated_calls
+    assert not call_store.is_authenticated(CALL_A)
 
 
 def test_r5_missing_digits_param_rejected(client):
     root = parse(client.post("/otp/verify", data={"CallUUID": CALL_A}))
 
     assert_redirects_to(root, "/answer")
-    assert CALL_A not in authenticated_calls
+    assert not call_store.is_authenticated(CALL_A)
 
 
 def test_r6_menu_without_auth_redirects_to_answer(client):
@@ -156,8 +156,8 @@ def test_r6_menu_after_auth_allowed(client, otp):
 
     root = parse(client.post("/menu/language", data={"CallUUID": CALL_A}))
 
-    assert [el.tag for el in root] == ["Speak", "Hangup"]
-    assert "Authentication complete" in root[0].text
+    assert [el.tag for el in root] == ["GetInput", "Redirect"]
+    assert root[0].get("action") == f"{BASE}/menu/language/select"
 
 
 def test_r6_auth_is_per_call(client, otp):
@@ -165,17 +165,17 @@ def test_r6_auth_is_per_call(client, otp):
 
     root = parse(client.post("/menu/language", data={"CallUUID": CALL_B}))
 
-    assert CALL_B not in authenticated_calls
+    assert not call_store.is_authenticated(CALL_B)
     assert_redirects_to(root, "/answer")
 
 
 def test_r6_hangup_clears_auth(client, otp):
     verify(client, otp)
-    assert CALL_A in authenticated_calls
+    assert call_store.is_authenticated(CALL_A)
 
     client.post("/hangup", data={"CallUUID": CALL_A, "CallStatus": "completed"})
 
-    assert CALL_A not in authenticated_calls
+    assert not call_store.is_authenticated(CALL_A)
     root = parse(client.post("/menu/language", data={"CallUUID": CALL_A}))
     assert_redirects_to(root, "/answer")
 

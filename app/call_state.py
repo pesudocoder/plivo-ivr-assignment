@@ -1,35 +1,47 @@
-"""Per-call authentication state.
+"""Per-call IVR state: OTP authentication and chosen language.
 
-Demo-grade: an in-memory set guarded by a lock. It lives in a single process
-and is lost on restart, which is fine for this assignment (no database). A
-multi-worker or production deployment would need a shared store such as Redis.
+Demo-grade: in-memory structures guarded by a lock. They live in a single
+process and are lost on restart, which is fine for this assignment (no
+database). A multi-worker or production deployment would need a shared store
+such as Redis.
 """
 
 import threading
 
 
-class AuthenticatedCalls:
-    """Thread-safe set of CallUUIDs that have entered the correct OTP."""
+class CallStore:
+    """Thread-safe per-CallUUID state, cleared when the call hangs up."""
 
     def __init__(self):
         self._lock = threading.Lock()
-        self._call_uuids = set()
+        self._authenticated = set()
+        self._languages = {}
 
-    def add(self, call_uuid):
+    def mark_authenticated(self, call_uuid):
         with self._lock:
-            self._call_uuids.add(call_uuid)
+            self._authenticated.add(call_uuid)
 
-    def discard(self, call_uuid):
+    def is_authenticated(self, call_uuid):
         with self._lock:
-            self._call_uuids.discard(call_uuid)
+            return call_uuid in self._authenticated
 
-    def __contains__(self, call_uuid):
+    def set_language(self, call_uuid, language):
         with self._lock:
-            return call_uuid in self._call_uuids
+            self._languages[call_uuid] = language
+
+    def get_language(self, call_uuid):
+        with self._lock:
+            return self._languages.get(call_uuid)
+
+    def end_call(self, call_uuid):
+        with self._lock:
+            self._authenticated.discard(call_uuid)
+            self._languages.pop(call_uuid, None)
 
     def clear(self):
         with self._lock:
-            self._call_uuids.clear()
+            self._authenticated.clear()
+            self._languages.clear()
 
 
-authenticated_calls = AuthenticatedCalls()
+call_store = CallStore()

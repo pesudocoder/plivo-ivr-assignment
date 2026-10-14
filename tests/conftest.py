@@ -4,7 +4,7 @@ import plivo
 import pytest
 
 from app import create_app
-from app.call_state import authenticated_calls
+from app.call_state import call_store
 from app.config import ENV_KEYS
 
 TEST_CONFIG = {
@@ -27,9 +27,9 @@ def clean_env(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def clean_call_state():
-    authenticated_calls.clear()
+    call_store.clear()
     yield
-    authenticated_calls.clear()
+    call_store.clear()
 
 
 @pytest.fixture(autouse=True)

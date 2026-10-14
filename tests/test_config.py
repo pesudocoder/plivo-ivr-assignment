@@ -3,6 +3,7 @@ import pytest
 from app import create_app
 from app.config import (
     BIRTHDATE_OTP,
+    DEFAULT_AUDIO_URL,
     MissingCredentialsError,
     load_config,
     require_call_config,
@@ -25,6 +26,12 @@ def test_load_config_reads_env_vars(monkeypatch):
     assert config["ASSOCIATE_NUMBER"] == "+912222222222"
     assert config["TARGET_NUMBER"] == "+913333333333"
     assert config["PUBLIC_BASE_URL"] == "https://env.example"
+
+
+def test_r8_audio_url_defaults_to_public_mp3_and_is_overridable():
+    assert load_config({})["AUDIO_URL"] == DEFAULT_AUDIO_URL
+    assert DEFAULT_AUDIO_URL.startswith("https://") and DEFAULT_AUDIO_URL.endswith(".mp3")
+    assert load_config({"AUDIO_URL": "https://x.test/a.mp3"})["AUDIO_URL"] == "https://x.test/a.mp3"
 
 
 def test_birthdate_otp_is_four_digit_ddmm():
