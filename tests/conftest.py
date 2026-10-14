@@ -4,6 +4,7 @@ import plivo
 import pytest
 
 from app import create_app
+from app.call_state import authenticated_calls
 from app.config import ENV_KEYS
 
 TEST_CONFIG = {
@@ -22,6 +23,13 @@ def clean_env(monkeypatch):
     """Ensure real credentials from the shell environment never leak into tests."""
     for key in ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def clean_call_state():
+    authenticated_calls.clear()
+    yield
+    authenticated_calls.clear()
 
 
 @pytest.fixture(autouse=True)

@@ -6,15 +6,15 @@ Status values: Pending / Pass / Fail / Manual-pending. Updated at the end of eac
 |----|-------------|-------|----------------------------------------|--------|
 | R1 | Outbound call from the Plivo number (PLIVO_FROM_NUMBER) to the target number via an endpoint or script | 2 | `test_r1_call_uses_plivo_from_number_and_target`, `test_r1_answer_and_hangup_urls_built_from_public_base_url`, `test_r1_base_url_trailing_slash_not_doubled`, `test_r1_returns_request_uuid`, `test_cli_prints_request_uuid`. Note: a live call is verified manually in Phase 6 (see "Manual live check (Phase 2)") | Pass |
 | R2 | Target number configurable via simple UI or config variable | 2 | `test_r2_target_defaults_to_config_target_number`, `test_r2_target_overridable_via_request_body`, `test_r2_invalid_number_rejected_400`, `test_r2_non_object_body_rejected_400`, `test_r2_cli_to_flag_overrides_target` | Pass |
-| R3 | On answer, prompt caller to enter a 4-digit OTP via DTMF | 3 | | Pending |
-| R4 | OTP is hardcoded birthdate in DDMM format | 3 | | Pending |
-| R5 | Wrong OTP → re-prompt until correct OTP entered | 3 | | Pending |
-| R6 | IVR menu accessible only after correct OTP | 3 | | Pending |
+| R3 | On answer, prompt caller to enter a 4-digit OTP via DTMF | 3 | `test_r3_answer_prompts_for_4_digit_dtmf`, `test_r3_no_input_reprompts_via_redirect_to_answer`, `test_r3_redirect_urls_absolute_with_trailing_slash_base` | Pass |
+| R4 | OTP is hardcoded birthdate in DDMM format | 3 | `test_r4_correct_otp_matches_birthdate_config`, `test_r4_correct_otp_redirects_to_language_menu`, `test_birthdate_otp_is_four_digit_ddmm`, `test_otp_value_never_in_xml_or_logs` | Pass |
+| R5 | Wrong OTP → re-prompt until correct OTP entered | 3 | `test_r5_wrong_otp_reprompts`, `test_r5_repeated_wrong_otps_keep_reprompting`, `test_r5_empty_short_long_and_nonnumeric_otp_rejected`, `test_r5_missing_digits_param_rejected` | Pass |
+| R6 | IVR menu accessible only after correct OTP | 3 | `test_r6_menu_without_auth_redirects_to_answer`, `test_r6_menu_without_call_uuid_redirects_to_answer`, `test_r6_menu_after_auth_allowed`, `test_r6_auth_is_per_call`, `test_r6_hangup_clears_auth` | Pass |
 | R7 | Level 1: Press 1 English, Press 2 Spanish | 4 | | Pending |
 | R8 | Level 2 Press 1: play a publicly hosted MP3 | 4 | | Pending |
 | R9 | Level 2 Press 2: forward call to associate number (ASSOCIATE_NUMBER) | 4 | | Pending |
 | R10 | Level 2 prompts are spoken in the language chosen at Level 1 | 4 | | Pending |
-| R11 | Call flow uses Plivo XML | 4 | `test_r11_answer_returns_valid_plivo_xml` | Partial (placeholder /answer) |
+| R11 | Call flow uses Plivo XML | 4 | `test_r11_answer_returns_valid_plivo_xml`, `test_r3_answer_prompts_for_4_digit_dtmf` | Partial (OTP flow in Plivo XML; menus pending) |
 | R12 | DTMF handled correctly across all levels (OTP, language, action) | 4 | | Pending |
 | R13 | Branching logic based on user input | 4 | | Pending |
 | R14 | Invalid input (wrong key, no input/timeout) repeats the current prompt | 4 | | Pending |
@@ -33,3 +33,16 @@ Places a real call; not part of the automated suite. Activate `.venv` first.
 4. Restart the server so it picks up the new `PUBLIC_BASE_URL`
 5. Place the call: `python scripts/make_call.py` (optionally `--to +91XXXXXXXXXX`)
 6. Confirm the phone rings and, on answer, plays "Hello from the Plivo IVR demo. Setup is working." and then hangs up
+
+## Manual live check (Phase 3)
+
+Places a real call; not part of the automated suite. Activate `.venv` first.
+
+1. Start the server: `python run.py`
+2. In a second terminal: `ngrok http 5000`
+3. Confirm `PUBLIC_BASE_URL` in `.env` matches the current ngrok https URL (free ngrok URLs change on every restart); if you edit it, restart the server
+4. Place the call: `python scripts/make_call.py`
+5. On answer, hear "Welcome to the InspireWorks demo. Please enter your 4-digit OTP."
+6. Enter a WRONG 4-digit OTP → hear "Incorrect OTP. Please try again." and the prompt repeats
+7. Enter the correct OTP → hear "Thank you. You have been verified." then "Authentication complete. The menu will be added in the next phase." and the call hangs up
+8. Optional: stay silent at the prompt for ~10s → hear "We did not receive any input." and the prompt repeats
