@@ -35,4 +35,5 @@ Plivo voice IVR demo (technical assignment). A Flask app triggers an outbound ca
 - `scripts/make_call.py` — CLI to place a call
 - `run.py` — dev server on port 5000
 - `tests/conftest.py` — autouse `mock_plivo` fixture replaces `plivo.RestClient` in every test
-- `docs/REQUIREMENTS.md` — requirements traceability table
+- `docs/REQUIREMENTS.md` — requirements traceability table + final audit
+- `docs/DEMO_SCRIPT.md`, `docs/SUBMISSION_EMAIL.md` — demo video script and submission email draft (placeholders only; never fill in real values from `.env`)

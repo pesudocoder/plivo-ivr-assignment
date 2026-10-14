@@ -19,9 +19,9 @@ Status values: Pending / Pass / Fail / Manual-pending. Updated at the end of eac
 | R13 | Branching logic based on user input | 4 | `test_r13_full_flow_english_audio_then_forward`, `test_r13_full_flow_spanish` | Pass |
 | R14 | Invalid input (wrong key, no input/timeout) repeats the current prompt | 4 | `test_r14_invalid_language_key_repeats_level1`, `test_r14_invalid_action_key_repeats_level2_in_chosen_language`, `test_r14_no_input_repeats_each_level`, `test_r3_no_input_reprompts_via_redirect_to_answer` | Pass |
 | R15 | Optional frontend: simple web page or CLI to trigger the call | 5 | `test_r15_index_page_renders`, `test_r15_index_prefills_target_number`, `test_r15_index_prefill_is_escaped`, `test_r15_index_has_no_secrets`, `test_r15_index_posts_to_call_endpoint`, `test_r15_index_has_no_external_dependencies`, `test_call_trigger_blocked_via_tunnel`, `test_webhooks_still_public_via_tunnel`; CLI: `test_cli_prints_request_uuid` | Pass |
-| R16 | README: setup instructions, required Plivo credentials (Auth ID / Auth Token), steps to run and test | 6 | | Pending |
-| R17 | Demo video 3–5 min: call made, wrong OTP then correct OTP, Level 1 → Level 2, audio playback, call forwarding (manual) | 6 | | Pending |
-| R18 | Receiver phone number included in submission email (manual) | 6 | | Pending |
+| R16 | README: setup instructions, required Plivo credentials (Auth ID / Auth Token), steps to run and test | 6 | Manual review of `README.md`: sections "Required Plivo credentials", "All variables", "Setup" (PowerShell + macOS/Linux), "Running a call", "Testing", "Manual end-to-end test" | Pass |
+| R17 | Demo video 3–5 min: call made, wrong OTP then correct OTP, Level 1 → Level 2, audio playback, call forwarding (manual) | 6 | Record following `docs/DEMO_SCRIPT.md` | Manual-pending (see DEMO_SCRIPT.md) |
+| R18 | Receiver phone number included in submission email (manual) | 6 | Fill in the placeholder in `docs/SUBMISSION_EMAIL.md` before sending | Manual-pending (see SUBMISSION_EMAIL.md) |
 
 ## Manual live check (Phase 2)
 
@@ -76,3 +76,13 @@ Places real calls; not part of the automated suite. Activate `.venv`, start `pyt
    - Associate answers, talks, then hangs up → caller hears "Thank you for calling. Goodbye."
    - Associate declines, is busy, or doesn't answer within 30s → caller hears "The associate is unavailable. Goodbye."
 5. Open the ngrok https URL root (`https://<your-ngrok-url>/`) in a browser → it returns **403** (call trigger is local-only); Plivo webhooks keep working through the same URL
+
+## Final audit (Phase 6, 2026-10-14)
+
+- **Automated:** `pytest -v` gives 135 passed. `pytest --cov=app` gives 99% line coverage; the only uncovered lines are the `ValueError` branch for an unparseable `remote_addr` in `app/security.py`.
+- **R1–R16:** each has passing tests (R16 by manual review of the README). The live behavior of R1 and R3–R14 is confirmed by the manual live checks above and the demo recording.
+- **R17, R18:** manual. Record the video per `docs/DEMO_SCRIPT.md` and send the email per `docs/SUBMISSION_EMAIL.md`.
+- **Secret scan:**
+  - The Plivo Auth ID and Auth Token were not found in any tracked or untracked (non-ignored) file, or anywhere in git history (`git log -p --all`, `git grep` across all commits). They exist only in the git-ignored `.env`.
+  - The OTP appears only in `app/config.py` (`BIRTHDATE_OTP`), where the assignment requires it to be hardcoded.
+- **`.env.example`:** contains every variable the app reads (`PLIVO_AUTH_ID`, `PLIVO_AUTH_TOKEN`, `PLIVO_FROM_NUMBER`, `ASSOCIATE_NUMBER`, `TARGET_NUMBER`, `PUBLIC_BASE_URL`, `AUDIO_URL`), with no credentials.
