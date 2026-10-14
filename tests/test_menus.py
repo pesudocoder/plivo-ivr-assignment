@@ -17,7 +17,13 @@ from tests.conftest import TEST_CONFIG
 BASE = "https://example.test"
 CALL_A = "call-uuid-a"
 CALL_B = "call-uuid-b"
-MENU_ROUTES = ["/menu/language", "/menu/language/select", "/menu/action", "/menu/action/select"]
+MENU_ROUTES = [
+    "/menu/language",
+    "/menu/language/select",
+    "/menu/action",
+    "/menu/action/select",
+    "/menu/dial/status",
+]
 
 
 def parse(response):
@@ -127,15 +133,15 @@ def test_r8_audio_url_overridable(app, client, english):
 def test_r9_action_2_dials_associate_number(client, english):
     root = post(client, "/menu/action/select", digits="2")
 
-    assert [el.tag for el in root] == ["Speak", "Dial", "Speak", "Hangup"]
+    # Nothing follows Dial: the closing message comes from the Dial action URL (/menu/dial/status).
+    assert [el.tag for el in root] == ["Speak", "Dial"]
     assert_speak(root[0], ACTION_PROMPTS["en"]["connecting"], "en")
     dial = root[1]
-    # Plivo's documented Dial format: country code + number, no leading '+'.
-    assert dial.get("callerId") == TEST_CONFIG["PLIVO_FROM_NUMBER"].lstrip("+")
+    # Plivo's documented Dial format: E.164 with leading '+'.
+    assert dial.get("callerId") == TEST_CONFIG["PLIVO_FROM_NUMBER"]
     numbers = dial.findall("Number")
     assert len(numbers) == 1
-    assert numbers[0].text == TEST_CONFIG["ASSOCIATE_NUMBER"].lstrip("+")
-    assert_speak(root[2], ACTION_PROMPTS["en"]["unavailable"], "en")
+    assert numbers[0].text == TEST_CONFIG["ASSOCIATE_NUMBER"]
 
 
 def test_r9_associate_number_normalized(app, client, english):
@@ -143,7 +149,7 @@ def test_r9_associate_number_normalized(app, client, english):
 
     root = post(client, "/menu/action/select", digits="2")
 
-    assert root.find("Dial/Number").text == "912264236412"
+    assert root.find("Dial/Number").text == "+912264236412"
 
 
 def test_r9_missing_associate_number_speaks_unavailable(app, client, english):
@@ -176,7 +182,8 @@ def test_r10_level2_prompts_in_spanish(client, spanish):
 
     forward = post(client, "/menu/action/select", digits="2")
     assert_speak(forward[0], ACTION_PROMPTS["es"]["connecting"], "es")
-    assert_speak(forward[2], ACTION_PROMPTS["es"]["unavailable"], "es")
+    ending = post(client, "/menu/dial/status", digits=None)
+    assert_speak(ending[0], ACTION_PROMPTS["es"]["unavailable"], "es")
 
 
 def test_r10_language_is_per_call(client, otp):
@@ -258,7 +265,11 @@ def test_r13_full_flow_english_audio_then_forward(app, client, otp):
 
     post(client, "/menu/action")
     root = post(client, "/menu/action/select", digits="2")
-    assert root.find("Dial/Number").text == TEST_CONFIG["ASSOCIATE_NUMBER"].lstrip("+")
+    assert root.find("Dial/Number").text == TEST_CONFIG["ASSOCIATE_NUMBER"]
+    assert root.find("Dial").get("action") == f"{BASE}/menu/dial/status"
+
+    root = parse(client.post("/menu/dial/status", data={"CallUUID": CALL_A, "DialStatus": "completed"}))
+    assert_speak(root[0], ACTION_PROMPTS["en"]["goodbye"], "en")
     assert root[-1].tag == "Hangup"
 
     client.post("/hangup", data={"CallUUID": CALL_A, "CallStatus": "completed"})
@@ -327,7 +338,7 @@ def test_r6_menus_reject_unauthenticated_calls(client, path, caplog):
     assert call_store.get_language(CALL_A) is None
 
 
-@pytest.mark.parametrize("path", ["/menu/action", "/menu/action/select"])
+@pytest.mark.parametrize("path", ["/menu/action", "/menu/action/select", "/menu/dial/status"])
 def test_action_menu_without_language_redirects_to_language_menu(client, authed, path):
     root = post(client, path, digits="1")
 

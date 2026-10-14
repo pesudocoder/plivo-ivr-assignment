@@ -1,15 +1,23 @@
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, render_template, request
 
 from app.config import MissingCredentialsError
 from app.plivo_client import InvalidNumberError, PlivoCallError, make_outbound_call
 from app.routes import bp
+from app.security import local_only
 
 
 def _error(message, status_code):
     return jsonify(status="error", error=message), status_code
 
 
+@bp.get("/")
+@local_only
+def index():
+    return render_template("index.html", target_number=current_app.config.get("TARGET_NUMBER") or "")
+
+
 @bp.post("/call")
+@local_only
 def call():
     body = request.get_json(silent=True)
     if body is None:

@@ -28,7 +28,9 @@ Plivo voice IVR demo (technical assignment). A Flask app triggers an outbound ca
 - `app/plivo_client.py` — `make_outbound_call()`; raises `InvalidNumberError` / `PlivoCallError` (auth token redacted)
 - `app/call_state.py` — `call_store`: demo-grade in-memory, thread-safe per-CallUUID auth + language, cleared on `/hangup`
 - `app/prompts.py` — all spoken text and Speak language/voice, keyed by language; shared by routes and tests
-- `app/routes/` — `bp` blueprint: `__init__.py` (`/health`), `calls.py` (`POST /call`), `ivr.py` (Plivo XML webhooks: `/answer`, `/otp/verify`, `/menu/language[/select]`, `/menu/action[/select]`, `/hangup`; menus gated by `requires_auth` / `requires_language`)
+- `app/routes/` — `bp` blueprint: `__init__.py` (`/health`), `calls.py` (`GET /` frontend, `POST /call`), `ivr.py` (Plivo XML webhooks: `/answer`, `/otp/verify`, `/menu/language[/select]`, `/menu/action[/select]`, `/menu/dial/status`, `/hangup`; menus gated by `requires_auth` / `requires_language`)
+- `app/security.py` — `local_only`: `GET /` and `POST /call` reject tunnelled (X-Forwarded-For), non-loopback, and cross-origin requests with 403. Never apply it to Plivo webhooks; they must stay public
+- `app/templates/index.html` — self-contained call trigger page (no external deps, no secrets)
 - `BIRTHDATE_OTP` holds the user's real value: never change, print, speak, or log it; tests read it from config
 - `scripts/make_call.py` — CLI to place a call
 - `run.py` — dev server on port 5000

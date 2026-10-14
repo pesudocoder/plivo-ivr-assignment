@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InspireWorks IVR Demo</title>
+  <style>
+    :root {
+      --bg: #f5f6f8; --card: #ffffff; --text: #1d2330; --muted: #5d6677;
+      --border: #d9dde5; --accent: #2457d6; --accent-hover: #1b45ad;
+      --ok-bg: #e7f6ec; --ok-text: #1d6b36; --err-bg: #fdecec; --err-text: #9b1c1c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171d; --card: #1d212a; --text: #e6e9ef; --muted: #9aa3b2;
+        --border: #333a47; --accent: #5b8cff; --accent-hover: #7aa2ff;
+        --ok-bg: #173323; --ok-text: #8fe0aa; --err-bg: #3a1b1b; --err-text: #f3a5a5;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 32px 16px; background: var(--bg); color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 560px; margin: 0 auto; display: grid; gap: 16px; }
+    h1 { margin: 0; font-size: 1.6rem; }
+    p { margin: 0; color: var(--muted); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    input {
+      flex: 1 1 220px; padding: 10px 12px; font-size: 1rem; color: var(--text);
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    }
+    button {
+      padding: 10px 18px; font-size: 1rem; font-weight: 600; color: #fff;
+      background: var(--accent); border: 0; border-radius: 8px; cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: var(--accent-hover); }
+    button:disabled { opacity: .6; cursor: progress; }
+    .hint { font-size: .875rem; margin-top: 6px; }
+    #result { margin-top: 14px; padding: 10px 12px; border-radius: 8px; word-break: break-word; }
+    #result[hidden] { display: none; }
+    #result.ok { background: var(--ok-bg); color: var(--ok-text); }
+    #result.err { background: var(--err-bg); color: var(--err-text); }
+    h2 { margin: 0 0 8px; font-size: 1.05rem; }
+    ol { margin: 0; padding-left: 20px; }
+    code { font-size: .9em; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>InspireWorks IVR Demo</h1>
+      <p>Places an outbound call through Plivo. The caller verifies a 4-digit OTP, picks a language (Level 1), then chooses to hear an audio message or be connected to a live associate (Level 2).</p>
+    </header>
+
+    <section class="card">
+      <form id="call-form">
+        <label for="to">Phone number to call</label>
+        <div class="row">
+          <input id="to" name="to" type="tel" value="{{ target_number }}" placeholder="+919876543210" autocomplete="tel" required>
+          <button id="start" type="submit">Start Call</button>
+        </div>
+        <p class="hint">E.164 format: <code>+</code>, country code, then number, e.g. <code>+919876543210</code>.</p>
+      </form>
+      <div id="result" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>How to test</h2>
+      <ol>
+        <li>Answer the call on the phone.</li>
+        <li>Enter a wrong 4-digit OTP and hear the re-prompt.</li>
+        <li>Enter the correct OTP.</li>
+        <li>Press <strong>1</strong> for English or <strong>2</strong> for Spanish.</li>
+        <li>Press <strong>1</strong> to hear the audio message, or <strong>2</strong> to be connected to an associate.</li>
+      </ol>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("call-form");
+    const button = document.getElementById("start");
+    const result = document.getElementById("result");
+
+    function show(kind, text) {
+      result.className = kind;
+      result.textContent = text;
+      result.hidden = false;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      button.textContent = "Calling…";
+      result.hidden = true;
+      try {
+        const response = await fetch("/call", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: document.getElementById("to").value.trim() }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.request_uuid) {
+          show("ok", "Call initiated. Request UUID: " + data.request_uuid);
+        } else {
+          show("err", data.error || ("Request failed with HTTP " + response.status));
+        }
+      } catch (error) {
+        show("err", "Could not reach the server: " + error.message);
+      } finally {
+        button.disabled = false;
+        button.textContent = "Start Call";
+      }
+    });
+  </script>
+</body>
+</html>

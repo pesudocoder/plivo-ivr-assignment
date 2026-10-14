@@ -55,8 +55,9 @@ def dtmf_input(action_path, num_digits):
 
 
 def dial_number(number):
-    """Plivo's <Number>/callerId format: country code + number, digits only, no '+'."""
-    return re.sub(r"\D", "", number or "")
+    """Plivo's documented <Number>/callerId format: E.164 with leading '+' (e.g. +14155551234)."""
+    digits = re.sub(r"\D", "", number or "")
+    return f"+{digits}" if digits else ""
 
 
 def otp_matches(digits):
@@ -175,24 +176,41 @@ def select_action(call_uuid, language):
 
     if digits == "2":
         associate = dial_number(current_app.config.get("ASSOCIATE_NUMBER"))
-        if associate:
-            current_app.logger.info("Forwarding call %s to associate", call_uuid)
-            response.add(speak(prompts["connecting"], language))
-            dial = plivoxml.DialElement(
-                caller_id=dial_number(current_app.config.get("PLIVO_FROM_NUMBER")) or None,
-                timeout=DIAL_TIMEOUT_SECONDS,
-            )
-            dial.add(plivoxml.NumberElement(associate))
-            response.add(dial)
-        else:
+        if not associate:
             current_app.logger.error("ASSOCIATE_NUMBER is not configured; cannot forward call %s", call_uuid)
-        # Runs after the dialled leg ends or fails to connect.
-        response.add(speak(prompts["unavailable"], language))
-        response.add(plivoxml.HangupElement())
+            response.add(speak(prompts["unavailable"], language))
+            response.add(plivoxml.HangupElement())
+            return xml_response(response)
+
+        current_app.logger.info("Forwarding call %s to associate", call_uuid)
+        response.add(speak(prompts["connecting"], language))
+        # When the Dial ends, Plivo POSTs DialStatus to the action URL and runs the XML it
+        # returns, so the closing message depends on whether the associate actually answered.
+        dial = plivoxml.DialElement(
+            action=public_url("/menu/dial/status"),
+            method="POST",
+            caller_id=dial_number(current_app.config.get("PLIVO_FROM_NUMBER")) or None,
+            timeout=DIAL_TIMEOUT_SECONDS,
+        )
+        dial.add(plivoxml.NumberElement(associate))
+        response.add(dial)
         return xml_response(response)
 
     response.add(speak(prompts["invalid"], language))
     return xml_response(redirect_to(response, "/menu/action"))
+
+
+@bp.post("/menu/dial/status")
+@requires_language
+def dial_status(call_uuid, language):
+    status = request.form.get("DialStatus")
+    current_app.logger.info("Dial to associate for call %s ended: DialStatus=%s", call_uuid, status)
+    prompts = ACTION_PROMPTS[language]
+    message = prompts["goodbye"] if status == "completed" else prompts["unavailable"]
+    response = plivoxml.ResponseElement()
+    response.add(speak(message, language))
+    response.add(plivoxml.HangupElement())
+    return xml_response(response)
 
 
 @bp.post("/hangup")

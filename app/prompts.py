@@ -27,12 +27,14 @@ ACTION_PROMPTS = {
         "menu": "Press 1 to hear a short audio message. Press 2 to speak with a live associate.",
         "connecting": "Connecting you to an associate.",
         "unavailable": "The associate is unavailable. Goodbye.",
+        "goodbye": "Thank you for calling. Goodbye.",
         "invalid": "Invalid option.",
     },
     "es": {
         "menu": "Presione 1 para escuchar un mensaje de audio. Presione 2 para hablar con un asociado.",
         "connecting": "Conectándolo con un asociado.",
         "unavailable": "El asociado no está disponible. Adiós.",
+        "goodbye": "Gracias por llamar. Adiós.",
         "invalid": "Opción no válida.",
     },
 }

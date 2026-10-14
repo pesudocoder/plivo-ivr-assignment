@@ -12,13 +12,13 @@ Status values: Pending / Pass / Fail / Manual-pending. Updated at the end of eac
 | R6 | IVR menu accessible only after correct OTP | 3 | `test_r6_menu_without_auth_redirects_to_answer`, `test_r6_menu_without_call_uuid_redirects_to_answer`, `test_r6_menu_after_auth_allowed`, `test_r6_auth_is_per_call`, `test_r6_hangup_clears_auth` | Pass |
 | R7 | Level 1: Press 1 English, Press 2 Spanish | 4 | `test_r7_language_menu_offers_english_1_and_spanish_2`, `test_r7_press_1_selects_english`, `test_r7_press_2_selects_spanish` | Pass |
 | R8 | Level 2 Press 1: play a publicly hosted MP3 | 4 | `test_r8_action_1_plays_public_mp3`, `test_r8_audio_url_overridable`, `test_r8_audio_url_defaults_to_public_mp3_and_is_overridable`; default URL HEAD-checked manually (200, audio/mp3) | Pass |
-| R9 | Level 2 Press 2: forward call to associate number (ASSOCIATE_NUMBER) | 4 | `test_r9_action_2_dials_associate_number`, `test_r9_associate_number_normalized`, `test_r9_missing_associate_number_speaks_unavailable` | Pass |
+| R9 | Level 2 Press 2: forward call to associate number (ASSOCIATE_NUMBER) | 4 | `test_r9_action_2_dials_associate_number`, `test_r9_associate_number_normalized`, `test_r9_missing_associate_number_speaks_unavailable`, `test_r9_dial_has_status_action_url`, `test_r9_dial_completed_says_goodbye_not_unavailable`, `test_r9_dial_failed_statuses_say_unavailable`, `test_r9_dial_status_logged_with_call_uuid`, `test_r9_dial_status_unauthenticated_redirects_to_answer` | Pass |
 | R10 | Level 2 prompts are spoken in the language chosen at Level 1 | 4 | `test_r10_level2_prompts_in_english`, `test_r10_level2_prompts_in_spanish`, `test_r10_language_is_per_call` | Pass |
 | R11 | Call flow uses Plivo XML | 4 | `test_r11_answer_returns_valid_plivo_xml`, `test_r11_all_menu_responses_are_valid_plivo_xml`, `test_r3_answer_prompts_for_4_digit_dtmf` | Pass |
 | R12 | DTMF handled correctly across all levels (OTP, language, action) | 4 | `test_r12_dtmf_handled_at_every_level` | Pass |
 | R13 | Branching logic based on user input | 4 | `test_r13_full_flow_english_audio_then_forward`, `test_r13_full_flow_spanish` | Pass |
 | R14 | Invalid input (wrong key, no input/timeout) repeats the current prompt | 4 | `test_r14_invalid_language_key_repeats_level1`, `test_r14_invalid_action_key_repeats_level2_in_chosen_language`, `test_r14_no_input_repeats_each_level`, `test_r3_no_input_reprompts_via_redirect_to_answer` | Pass |
-| R15 | Optional frontend: simple web page or CLI to trigger the call | 5 | | Pending |
+| R15 | Optional frontend: simple web page or CLI to trigger the call | 5 | `test_r15_index_page_renders`, `test_r15_index_prefills_target_number`, `test_r15_index_prefill_is_escaped`, `test_r15_index_has_no_secrets`, `test_r15_index_posts_to_call_endpoint`, `test_r15_index_has_no_external_dependencies`, `test_call_trigger_blocked_via_tunnel`, `test_webhooks_still_public_via_tunnel`; CLI: `test_cli_prints_request_uuid` | Pass |
 | R16 | README: setup instructions, required Plivo credentials (Auth ID / Auth Token), steps to run and test | 6 | | Pending |
 | R17 | Demo video 3–5 min: call made, wrong OTP then correct OTP, Level 1 → Level 2, audio playback, call forwarding (manual) | 6 | | Pending |
 | R18 | Receiver phone number included in submission email (manual) | 6 | | Pending |
@@ -64,3 +64,15 @@ Places real calls; not part of the automated suite. Activate `.venv`, start `pyt
 1. Enter the correct OTP → press 2 at the language menu
 2. Hear the Level 2 prompt in Spanish: "Presione 1 para escuchar un mensaje de audio. Presione 2 para hablar con un asociado."
 3. Press 1 → the MP3 plays, then the Spanish Level 2 prompt returns
+
+## Manual live check (Phase 5)
+
+Places real calls; not part of the automated suite. Activate `.venv`, start `python run.py` and `ngrok http 5000`, and confirm `PUBLIC_BASE_URL` in `.env` matches the current ngrok https URL (restart the server after editing it).
+
+1. Open http://127.0.0.1:5000 → the page shows the target number pre-filled and no OTP or credentials
+2. Click **Start Call** → the button disables while in flight, then a request UUID is shown
+3. On the phone: enter the correct OTP → press 1 (English) → press 2 (associate)
+4. Hear "Connecting you to an associate." and confirm the ending message matches the outcome:
+   - Associate answers, talks, then hangs up → caller hears "Thank you for calling. Goodbye."
+   - Associate declines, is busy, or doesn't answer within 30s → caller hears "The associate is unavailable. Goodbye."
+5. Open the ngrok https URL root (`https://<your-ngrok-url>/`) in a browser → it returns **403** (call trigger is local-only); Plivo webhooks keep working through the same URL
