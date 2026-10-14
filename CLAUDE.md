@@ -25,6 +25,9 @@ Plivo voice IVR demo (technical assignment). A Flask app triggers an outbound ca
 
 - `app/__init__.py` — `create_app(test_config=None)` factory
 - `app/config.py` — env loading, `BIRTHDATE_OTP`, `require_call_config()` (raises `MissingCredentialsError`)
-- `app/routes/` — blueprints (`/health`, later the call and IVR webhooks)
+- `app/plivo_client.py` — `make_outbound_call()`; raises `InvalidNumberError` / `PlivoCallError` (auth token redacted)
+- `app/routes/` — `bp` blueprint: `__init__.py` (`/health`), `calls.py` (`POST /call`), `ivr.py` (`/answer`, `/hangup` Plivo XML webhooks)
+- `scripts/make_call.py` — CLI to place a call
 - `run.py` — dev server on port 5000
+- `tests/conftest.py` — autouse `mock_plivo` fixture replaces `plivo.RestClient` in every test
 - `docs/REQUIREMENTS.md` — requirements traceability table

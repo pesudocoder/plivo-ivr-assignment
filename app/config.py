@@ -8,7 +8,7 @@ tests never load .env and supply their own config instead.
 import os
 
 # Hardcoded OTP: birthdate in DDMM format. Placeholder - replace with the real value.
-BIRTHDATE_OTP = "1503"
+BIRTHDATE_OTP = "2707"
 
 ENV_KEYS = (
     "PLIVO_AUTH_ID",

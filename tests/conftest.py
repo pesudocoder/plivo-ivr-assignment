@@ -1,3 +1,6 @@
+from unittest.mock import MagicMock
+
+import plivo
 import pytest
 
 from app import create_app
@@ -19,6 +22,21 @@ def clean_env(monkeypatch):
     """Ensure real credentials from the shell environment never leak into tests."""
     for key in ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+
+
+@pytest.fixture(autouse=True)
+def mock_plivo(monkeypatch):
+    """Replace plivo.RestClient so no test can reach the real Plivo API.
+
+    Returns the mocked RestClient class; the client instance is
+    mock_plivo.return_value and calls.create returns request_uuid "test-request-uuid".
+    """
+    rest_client = MagicMock(name="RestClient")
+    rest_client.return_value.calls.create.return_value = MagicMock(
+        request_uuid="test-request-uuid"
+    )
+    monkeypatch.setattr(plivo, "RestClient", rest_client)
+    return rest_client
 
 
 @pytest.fixture
